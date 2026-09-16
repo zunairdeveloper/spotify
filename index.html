@@ -123,7 +123,7 @@
           <!-- Live Global Search Bar -->
           <div class="search-input-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="globalSearchInput" placeholder="Search any song or singer (e.g. Atif, BTS, Arijit, Diljit)..." autocomplete="off">
+            <input type="text" id="globalSearchInput" placeholder="Search any song, singer, or lyrics from around the world (Press Enter)..." autocomplete="off">
             <div class="search-spinner" id="searchSpinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
             <button class="clear-search-btn" id="clearSearchBtn" aria-label="Clear search">
               <i class="fa-solid fa-xmark"></i>
@@ -502,14 +502,21 @@
         <i class="fa-solid fa-list-ul"></i>
       </button>
 
-      <div class="volume-container">
-        <button class="volume-mute-btn" id="volumeMuteBtn" title="Mute / Unmute (M)">
+      <div class="volume-container" id="volumeContainer" title="Volume Controls: Click + / -, drag slider, or scroll mouse wheel">
+        <button class="volume-mute-btn" id="volumeMuteBtn" title="Mute / Unmute (M)" aria-label="Mute or Unmute">
           <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
         </button>
-        <div class="volume-slider-wrapper">
+        <button class="vol-step-btn" id="volDownBtn" title="Volume Down (-10%)" aria-label="Decrease Volume">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <div class="volume-slider-wrapper" id="volumeSliderWrapper">
           <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8" aria-label="Volume slider">
           <div class="volume-progress-fill" id="volumeProgressFill"></div>
         </div>
+        <button class="vol-step-btn" id="volUpBtn" title="Volume Up (+10%)" aria-label="Increase Volume">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <span class="volume-pct-label" id="volumePercentLabel">80%</span>
       </div>
     </div>
   </footer>

@@ -20,7 +20,9 @@
   let previousView     = 'viewHome';
   let currentSongIndex = 0;
   let activeQueue      = [];
-  let lastVolume       = 0.8;
+  let savedVol         = parseFloat(localStorage.getItem('zumut_volume'));
+  let lastVolume       = (!isNaN(savedVol) && savedVol >= 0 && savedVol <= 1) ? savedVol : 0.8;
+  let isMuted          = localStorage.getItem('zumut_muted') === 'true';
   let searchDebounce   = null;
   const artistCache    = {};
 
@@ -33,7 +35,7 @@
       playerTrackThumb, playerTrackTitle, playerTrackArtist, playerThumbGlow,
       playerLikeBtn, seekSlider, seekProgressFill, currentTimeLabel, durationLabel,
       volumeSlider, volumeProgressFill, volumeMuteBtn, volumeIcon, audioEqualizerBars,
-      openFullSongBtn,
+      openFullSongBtn, volDownBtn, volUpBtn, volumePercentLabel, volumeContainer,
       globalSearchInput, clearSearchBtn, searchSpinner, navHome, navSearch, navSingers,
       navLiked, brandHomeBtn, likedCountBadge, libLikedCount, libLikedCard,
       featuredArtistsGrid, trendingSongsGrid, desiSongsGrid, globalSongsGrid,
@@ -156,26 +158,27 @@
   activeQueue = [...SONGS];
 
   /* ────────────────────────────────────────────────────────
-     ITUNES SEARCH API VIA JSONP (Direct, instant audio links)
+     WORLDWIDE UNIVERSAL MUSIC SEARCH (Multi-Country & Multi-Store)
+     Supports: Song title, Artist, Album, and Middle-of-Song Lyrics
   ──────────────────────────────────────────────────────── */
-  function itunesSearch(term, limit = 25) {
+  function itunesSearchSingle(term, country = 'in', limit = 25) {
     return new Promise(resolve => {
-      const cb  = '_zcb_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+      const cb  = '_zcb_' + Math.random().toString(36).slice(2) + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       const scr = document.createElement('script');
       const timer = setTimeout(() => {
         delete window[cb];
         scr.remove();
         resolve({ resultCount: 0, results: [] });
-      }, 7000);
+      }, 5500);
 
       window[cb] = data => {
         clearTimeout(timer);
         delete window[cb];
         scr.remove();
-        resolve(data);
+        resolve(data || { resultCount: 0, results: [] });
       };
 
-      scr.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=${limit}&callback=${cb}`;
+      scr.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=${country}&callback=${cb}`;
       scr.onerror = () => {
         clearTimeout(timer);
         delete window[cb];
@@ -186,27 +189,61 @@
     });
   }
 
+  async function universalSongSearch(query, limit = 35) {
+    if (!query || !query.trim()) return [];
+    const q = query.trim();
+
+    // Query South Asian catalog (India/Pakistan) and Global/Western catalog in parallel
+    const [inResults, usResults, pkResults] = await Promise.all([
+      itunesSearchSingle(q, 'in', limit),
+      itunesSearchSingle(q, 'us', Math.min(limit, 25)),
+      itunesSearchSingle(q, 'pk', Math.min(limit, 20))
+    ]);
+
+    const combinedRaw = [
+      ...(inResults.results || []),
+      ...(usResults.results || []),
+      ...(pkResults.results || [])
+    ];
+
+    const uniqueTracks = [];
+    const seenKeys = new Set();
+
+    combinedRaw.forEach(r => {
+      if (!r || !r.previewUrl) return;
+      const key = `${(r.trackName || '').toLowerCase().trim()}|${(r.artistName || '').toLowerCase().trim()}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      uniqueTracks.push({
+        id: `online-${r.trackId || Math.random().toString(36).slice(2)}`,
+        title: r.trackName,
+        artist: r.artistName,
+        artistId: 'online',
+        album: r.collectionName || 'Single',
+        duration: formatTime((r.trackTimeMillis || 180000) / 1000),
+        src: r.previewUrl,
+        cover: (r.artworkUrl100 || 'zumut-logo.png').replace('100x100', '600x600'),
+        category: 'online',
+        isTrending: false
+      });
+    });
+
+    return uniqueTracks;
+  }
+
   /* Resolves direct playable audio URL for any song */
   async function resolveSongSrc(song) {
-    if (song.src) return song.src;
+    if (song.src && song.src !== 'undefined' && !song.src.startsWith('blob:null')) return song.src;
 
     try {
       const query = `${song.title} ${song.artist}`.replace(/[\(\)\[\]\-]/g, ' ').trim();
-      const data = await itunesSearch(query, 5);
-
-      if (data.results && data.results.length > 0) {
-        // Find best match with previewUrl
-        const titleKey = song.title.toLowerCase().split('(')[0].trim();
-        const match = data.results.find(r => r.previewUrl && r.trackName.toLowerCase().includes(titleKey))
-                   || data.results.find(r => r.previewUrl);
-
-        if (match && match.previewUrl) {
-          song.src = match.previewUrl;
-          if (match.artworkUrl100) {
-            song.cover = match.artworkUrl100.replace('100x100', '600x600');
-          }
-          return song.src;
-        }
+      const results = await universalSongSearch(query, 5);
+      if (results && results.length > 0) {
+        const found = results[0];
+        song.src = found.src;
+        if (found.cover) song.cover = found.cover;
+        return song.src;
       }
     } catch (err) {
       console.warn('resolveSongSrc lookup error:', err);
@@ -304,6 +341,10 @@
     volumeProgressFill     = document.getElementById('volumeProgressFill');
     volumeMuteBtn          = document.getElementById('volumeMuteBtn');
     volumeIcon             = document.getElementById('volumeIcon');
+    volDownBtn             = document.getElementById('volDownBtn');
+    volUpBtn               = document.getElementById('volUpBtn');
+    volumePercentLabel     = document.getElementById('volumePercentLabel');
+    volumeContainer        = document.getElementById('volumeContainer');
     audioEqualizerBars     = document.getElementById('audioEqualizerBars');
     openFullSongBtn        = document.getElementById('openFullSongBtn');
 
@@ -370,8 +411,14 @@
     setupAudioEvents();
 
     // Volume initial state
-    audio.volume = lastVolume;
-    updateVolumeSliderUI(lastVolume);
+    if (audio) {
+      audio.muted = isMuted;
+      audio.volume = isMuted ? 0 : lastVolume;
+    }
+    if (volumeSlider) {
+      volumeSlider.value = isMuted ? 0 : lastVolume;
+    }
+    updateVolumeSliderUI(isMuted ? 0 : lastVolume);
 
     // Render Initial UI
     setupGreeting();
@@ -470,7 +517,8 @@
       }
 
       audio.src = audioUrl;
-      audio.volume = lastVolume;
+      audio.muted = isMuted;
+      audio.volume = isMuted ? 0 : (parseFloat(volumeSlider ? volumeSlider.value : lastVolume) || lastVolume || 0.8);
       audio.load();
 
       const playPromise = audio.play();
@@ -782,8 +830,49 @@
   }
 
   /* ────────────────────────────────────────────────────────
-     UNIVERSAL SEARCH (Local + Online)
+     UNIVERSAL SEARCH (Local + Instant Worldwide Search)
   ──────────────────────────────────────────────────────── */
+  async function executeOnlineSearch(query) {
+    const q  = (query || '').trim();
+    const ql = q.toLowerCase();
+    if (!q) return;
+
+    searchQueryEcho.textContent = q;
+    searchSpinner.classList.add('active');
+
+    // Filter local library instantly
+    const localSongs   = SONGS.filter(s => s.title.toLowerCase().includes(ql) || s.artist.toLowerCase().includes(ql) || s.album.toLowerCase().includes(ql));
+    const localArtists = ARTISTS.filter(a => a.name.toLowerCase().includes(ql) || a.role.toLowerCase().includes(ql));
+
+    if (currentView !== 'viewSearchResults') switchView('viewSearchResults');
+
+    try {
+      const onlineTracks = await universalSongSearch(q, 35);
+      searchSpinner.classList.remove('active');
+
+      // Add newly discovered songs to master SONGS list
+      onlineTracks.forEach(ot => {
+        if (!SONGS.some(s => s.id === ot.id || (s.title.toLowerCase() === ot.title.toLowerCase() && s.artist.toLowerCase() === ot.artist.toLowerCase()))) {
+          SONGS.push(ot);
+        }
+      });
+
+      // Merge local and online tracks without duplicates
+      const mergedSongs = [...localSongs];
+      onlineTracks.forEach(ot => {
+        if (!mergedSongs.some(m => m.id === ot.id || (m.title.toLowerCase() === ot.title.toLowerCase() && m.artist.toLowerCase() === ot.artist.toLowerCase()))) {
+          mergedSongs.push(ot);
+        }
+      });
+
+      showSearchResults(mergedSongs, localArtists, q);
+    } catch (err) {
+      console.warn('Online search error:', err);
+      searchSpinner.classList.remove('active');
+      showSearchResults(localSongs, localArtists, q);
+    }
+  }
+
   function handleSearch(query) {
     const q  = query.trim();
     const ql = q.toLowerCase();
@@ -805,51 +894,12 @@
     showSearchResults(localSongs, localArtists, q);
     if (currentView !== 'viewSearchResults') switchView('viewSearchResults');
 
-    // Debounced Online iTunes Search
+    // Debounced Global Worldwide Search
     clearTimeout(searchDebounce);
     searchSpinner.classList.add('active');
 
-    searchDebounce = setTimeout(async () => {
-      try {
-        const data = await itunesSearch(q, 30);
-        searchSpinner.classList.remove('active');
-
-        if (data.results && data.results.length > 0) {
-          const onlineTracks = data.results
-            .filter(r => r.previewUrl)
-            .map((r, idx) => ({
-              id: `online-${r.trackId || idx}`,
-              title: r.trackName,
-              artist: r.artistName,
-              artistId: 'online',
-              album: r.collectionName || 'Single',
-              duration: formatTime((r.trackTimeMillis || 180000) / 1000),
-              src: r.previewUrl,
-              cover: (r.artworkUrl100 || 'zumut-logo.png').replace('100x100', '600x600'),
-              category: 'online',
-              isTrending: false
-            }));
-
-          // Add to global library
-          onlineTracks.forEach(ot => {
-            if (!SONGS.some(s => s.title === ot.title && s.artist === ot.artist)) {
-              SONGS.push(ot);
-            }
-          });
-
-          // Merge without duplicates
-          const mergedSongs = [...localSongs];
-          onlineTracks.forEach(ot => {
-            if (!mergedSongs.some(m => m.id === ot.id || (m.title === ot.title && m.artist === ot.artist))) {
-              mergedSongs.push(ot);
-            }
-          });
-
-          showSearchResults(mergedSongs, localArtists, q);
-        }
-      } catch (err) {
-        searchSpinner.classList.remove('active');
-      }
+    searchDebounce = setTimeout(() => {
+      executeOnlineSearch(q);
     }, 350);
   }
 
@@ -865,10 +915,12 @@
     searchEmptyState.style.display    = 'none';
     searchTopResultCard.style.display = 'flex';
 
-    const topArtist = artists.find(a => a.name.toLowerCase() === q.toLowerCase()) || artists[0];
-    const topSong   = songs[0];
+    // Prioritize exact artist match, otherwise prioritize top matching song
+    const exactArtist = artists.find(a => a.name.toLowerCase() === q.toLowerCase());
+    const topSong     = songs[0];
+    const topArtist   = exactArtist || artists[0];
 
-    if (topArtist) {
+    if (exactArtist) {
       searchTopResultCard.innerHTML = `
         <img src="${topArtist.image}" class="top-result-thumb" style="border-radius:var(--radius-sm);" onerror="this.src='zumut-logo.png'">
         <div class="top-result-title">${topArtist.name}</div>
@@ -879,12 +931,19 @@
       searchTopResultCard.innerHTML = `
         <img src="${topSong.cover}" class="top-result-thumb" onerror="this.src='zumut-logo.png'">
         <div class="top-result-title">${topSong.title}</div>
-        <div class="top-result-meta"><span style="color:var(--zumut-green);font-weight:700;">Song</span> • ${topSong.artist}</div>
+        <div class="top-result-meta"><span style="color:var(--zumut-green);font-weight:700;">Song</span> • ${topSong.artist} • ${topSong.album}</div>
         <button class="top-result-play-btn" title="Play ${topSong.title}"><i class="fa-solid fa-play"></i></button>`;
       searchTopResultCard.onclick = () => playSpecificSong(topSong);
+    } else if (topArtist) {
+      searchTopResultCard.innerHTML = `
+        <img src="${topArtist.image}" class="top-result-thumb" style="border-radius:var(--radius-sm);" onerror="this.src='zumut-logo.png'">
+        <div class="top-result-title">${topArtist.name}</div>
+        <div class="top-result-meta"><span style="color:var(--zumut-green);font-weight:700;">Artist</span> • ${topArtist.listeners} fans</div>
+        <button class="top-result-play-btn" title="Play ${topArtist.name}"><i class="fa-solid fa-play"></i></button>`;
+      searchTopResultCard.onclick = () => openArtistDetail(topArtist.id);
     }
 
-    renderSongsTable(searchSongsTableBody, songs.slice(0, 20));
+    renderSongsTable(searchSongsTableBody, songs.slice(0, 30));
     searchArtistsGrid.innerHTML = '';
     artists.forEach(a => searchArtistsGrid.appendChild(createArtistCard(a)));
   }
@@ -1027,13 +1086,101 @@
   }
 
   function updateVolumeSliderUI(v) {
-    if (volumeProgressFill) volumeProgressFill.style.width = `${v * 100}%`;
+    const val = parseFloat(v);
+    const pct = Math.max(0, Math.min(100, Math.round((isNaN(val) ? 0 : val) * 100)));
+    if (volumeProgressFill) {
+      volumeProgressFill.style.width = `${pct}%`;
+    }
+    if (volumePercentLabel) {
+      volumePercentLabel.textContent = (isMuted || pct === 0) ? 'Mute' : `${pct}%`;
+    }
     if (volumeIcon) {
-      volumeIcon.className = v === 0
-        ? 'fa-solid fa-volume-xmark'
-        : v < 0.5
-        ? 'fa-solid fa-volume-low'
-        : 'fa-solid fa-volume-high';
+      if (isMuted || pct === 0) {
+        volumeIcon.className = 'fa-solid fa-volume-xmark';
+        if (volumeMuteBtn) {
+          volumeMuteBtn.title = 'Unmute (M)';
+          volumeMuteBtn.setAttribute('aria-label', 'Unmute audio');
+          volumeMuteBtn.style.color = '#ff4d4d';
+        }
+      } else if (pct < 50) {
+        volumeIcon.className = 'fa-solid fa-volume-low';
+        if (volumeMuteBtn) {
+          volumeMuteBtn.title = 'Mute (M)';
+          volumeMuteBtn.setAttribute('aria-label', 'Mute audio');
+          volumeMuteBtn.style.color = 'var(--text-white)';
+        }
+      } else {
+        volumeIcon.className = 'fa-solid fa-volume-high';
+        if (volumeMuteBtn) {
+          volumeMuteBtn.title = 'Mute (M)';
+          volumeMuteBtn.setAttribute('aria-label', 'Mute audio');
+          volumeMuteBtn.style.color = 'var(--text-white)';
+        }
+      }
+    }
+  }
+
+  function handleVolumeChange(val, showToastFeedback = true) {
+    const v = Math.max(0, Math.min(1, Math.round(parseFloat(val) * 100) / 100));
+    if (v === 0) {
+      isMuted = true;
+      if (audio) {
+        audio.muted = true;
+        audio.volume = 0;
+      }
+      localStorage.setItem('zumut_muted', 'true');
+      if (showToastFeedback) showToast('Sound Muted', 'info');
+    } else {
+      isMuted = false;
+      lastVolume = v;
+      if (audio) {
+        audio.muted = false;
+        audio.volume = v;
+      }
+      localStorage.setItem('zumut_muted', 'false');
+      localStorage.setItem('zumut_volume', String(v));
+      if (showToastFeedback) showToast(`Volume: ${Math.round(v * 100)}%`, 'info');
+    }
+    if (volumeSlider) volumeSlider.value = v;
+    updateVolumeSliderUI(v);
+  }
+
+  function stepVolume(delta) {
+    const cur = (isMuted || (audio && audio.muted)) ? 0 : (parseFloat(volumeSlider ? volumeSlider.value : lastVolume) || 0);
+    const next = Math.max(0, Math.min(1, Math.round((cur + delta) * 10) / 10));
+    handleVolumeChange(next, true);
+  }
+
+  function toggleMute() {
+    if (isMuted || (audio && (audio.muted || audio.volume === 0))) {
+      // Unmute
+      isMuted = false;
+      const restoreVol = (lastVolume > 0.05) ? lastVolume : 0.8;
+      lastVolume = restoreVol;
+      if (volumeSlider) volumeSlider.value = restoreVol;
+      if (audio) {
+        audio.muted = false;
+        audio.volume = restoreVol;
+      }
+      updateVolumeSliderUI(restoreVol);
+      localStorage.setItem('zumut_muted', 'false');
+      localStorage.setItem('zumut_volume', String(restoreVol));
+      showToast(`Volume: ${Math.round(restoreVol * 100)}%`, 'info');
+    } else {
+      // Mute
+      const cur = parseFloat(volumeSlider ? volumeSlider.value : lastVolume) || 0;
+      if (cur > 0.05) {
+        lastVolume = cur;
+      }
+      isMuted = true;
+      if (volumeSlider) volumeSlider.value = 0;
+      if (audio) {
+        audio.muted = true;
+        audio.volume = 0;
+      }
+      updateVolumeSliderUI(0);
+      localStorage.setItem('zumut_muted', 'true');
+      showToast('Sound Muted', 'info');
     }
   }
 
@@ -1092,30 +1239,46 @@
       if (currentTimeLabel) currentTimeLabel.textContent = formatTime(v);
     });
 
-    // Volume Slider
-    volumeSlider.addEventListener('input', () => {
-      const v = parseFloat(volumeSlider.value);
-      lastVolume = v;
-      if (audio) audio.volume = v;
-      updateVolumeSliderUI(v);
-    });
+    // Volume Slider & Buttons (+, -, Mute, Wheel)
+    if (volumeSlider) {
+      volumeSlider.addEventListener('input', e => handleVolumeChange(e.target.value, false));
+      volumeSlider.addEventListener('change', e => handleVolumeChange(e.target.value, true));
+    }
 
-    volumeMuteBtn.addEventListener('click', () => {
-      const curVol = parseFloat(volumeSlider.value) || 0;
-      if (curVol > 0) {
-        lastVolume = curVol;
-        volumeSlider.value = 0;
-        if (audio) audio.volume = 0;
-        updateVolumeSliderUI(0);
-      } else {
-        volumeSlider.value = lastVolume || 0.8;
-        if (audio) audio.volume = lastVolume || 0.8;
-        updateVolumeSliderUI(lastVolume || 0.8);
+    if (volumeMuteBtn) {
+      volumeMuteBtn.addEventListener('click', toggleMute);
+    }
+
+    if (volDownBtn) {
+      volDownBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepVolume(-0.1);
+      });
+    }
+
+    if (volUpBtn) {
+      volUpBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepVolume(0.1);
+      });
+    }
+
+    if (volumeContainer) {
+      volumeContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        stepVolume(e.deltaY < 0 ? 0.05 : -0.05);
+      }, { passive: false });
+    }
+
+    // Search input (Live typing + Enter instant search)
+    globalSearchInput.addEventListener('input', e => handleSearch(e.target.value));
+    globalSearchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(searchDebounce);
+        executeOnlineSearch(globalSearchInput.value);
       }
     });
-
-    // Search input
-    globalSearchInput.addEventListener('input', e => handleSearch(e.target.value));
     clearSearchBtn.addEventListener('click', () => {
       globalSearchInput.value = '';
       clearSearchBtn.style.display = 'none';
@@ -1242,18 +1405,14 @@
         if (audio) {
           audio.currentTime = Math.max(audio.currentTime - 5, 0);
         }
-      } else if (e.code === 'ArrowUp') {
+      } else if (e.code === 'ArrowUp' || e.key === '+' || e.key === '=') {
         e.preventDefault();
-        const v = Math.min((parseFloat(volumeSlider.value) || 0) + 0.1, 1);
-        volumeSlider.value = v;
-        volumeSlider.dispatchEvent(new Event('input'));
-      } else if (e.code === 'ArrowDown') {
+        stepVolume(0.1);
+      } else if (e.code === 'ArrowDown' || e.key === '-' || e.key === '_') {
         e.preventDefault();
-        const v = Math.max((parseFloat(volumeSlider.value) || 0) - 0.1, 0);
-        volumeSlider.value = v;
-        volumeSlider.dispatchEvent(new Event('input'));
+        stepVolume(-0.1);
       } else if (e.key === 'm' || e.key === 'M') {
-        volumeMuteBtn.click();
+        toggleMute();
       } else if (e.key === 'l' || e.key === 'L') {
         playerLikeBtn.click();
       } else if (e.key === 'Escape') {

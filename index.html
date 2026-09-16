@@ -1,111 +1,592 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Spotify Music Player</title>
-
-<link rel="stylesheet" href="style.css">
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zumut - Music For Your Mood | Created by Zunair</title>
+  <link rel="icon" type="image/png" href="zumut-logo.png">
+  <meta name="description" content="Zumut - Spotify-inspired premium music player created by Zunair. Listen to your favorite songs and singers with real-time search, playlists, and dark mode interface.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <div class="app-container">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-container" id="brandHomeBtn">
+          <img src="zumut-logo.png" alt="Zumut Logo" class="brand-logo">
+          <div class="brand-text">
+            <span class="brand-name">Zumut</span>
+            <span class="brand-tagline">Music For Your Mood</span>
+          </div>
+        </div>
+        <button class="mobile-close-sidebar" id="closeSidebarBtn" aria-label="Close sidebar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-<div class="overlay">
+      <!-- Main Navigation -->
+      <nav class="sidebar-nav">
+        <ul>
+          <li class="nav-item active" id="navHome">
+            <a href="javascript:void(0)"><i class="fa-solid fa-house"></i> <span>Home</span></a>
+          </li>
+          <li class="nav-item" id="navSearch">
+            <a href="javascript:void(0)"><i class="fa-solid fa-magnifying-glass"></i> <span>Search</span></a>
+          </li>
+          <li class="nav-item" id="navSingers">
+            <a href="javascript:void(0)"><i class="fa-solid fa-microphone-lines"></i> <span>Singers & Artists</span></a>
+          </li>
+          <li class="nav-item" id="navLiked">
+            <a href="javascript:void(0)">
+              <i class="fa-solid fa-heart" style="color: #1ed760;"></i> 
+              <span>Liked Songs</span>
+              <span class="badge" id="likedCountBadge">0</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
 
-<div class="player">
+      <!-- Library & Playlists Section -->
+      <div class="sidebar-library">
+        <div class="library-header">
+          <div class="lib-title">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Your Library</span>
+          </div>
+          <button class="lib-add-btn" id="createPlaylistBtn" title="Create Playlist">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
 
-<img src="spotify pic.png" class="logo">
+        <div class="library-shortcuts">
+          <div class="lib-card-liked" id="libLikedCard">
+            <div class="liked-icon-box">
+              <i class="fa-solid fa-heart"></i>
+            </div>
+            <div class="liked-info">
+              <h4>Liked Songs</h4>
+              <p><span id="libLikedCount">0</span> songs</p>
+            </div>
+          </div>
+        </div>
 
-<h2 id="songName">Alex Morgan</h2>
+        <!-- Quick Singer / Artist Filter list in Sidebar -->
+        <div class="sidebar-artists-list">
+          <div class="sub-heading">Featured Artists</div>
+          <ul id="sidebarArtistUl">
+            <!-- Injected via JavaScript -->
+          </ul>
+        </div>
+      </div>
 
-<p id="artistName">Spotify Music Player</p>
+      <!-- Creator Attribution Badge at Sidebar Bottom -->
+      <div class="creator-sidebar-card" id="creatorBadgeBtn">
+        <div class="creator-avatar-wrap">
+          <div class="creator-avatar">Z</div>
+          <span class="verified-dot" title="Verified Creator"><i class="fa-solid fa-circle-check"></i></span>
+        </div>
+        <div class="creator-details">
+          <div class="creator-label">Created & Built by</div>
+          <div class="creator-name">Zunair</div>
+          <div class="creator-role">Lead Developer & Designer</div>
+        </div>
+      </div>
+    </aside>
 
-<img src="gui.gif" class="equalizer">
+    <!-- MAIN APP CONTENT AREA -->
+    <main class="main-content" id="mainContent">
+      
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-bar" id="topBar">
+        <div class="top-left-group">
+          <button class="mobile-toggle-btn" id="openSidebarBtn" aria-label="Open sidebar">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          
+          <div class="history-arrows">
+            <button class="history-btn" id="navBackBtn" title="Go back"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="history-btn" id="navForwardBtn" title="Go forward"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
 
-<audio id="audio"></audio>
+          <!-- Live Global Search Bar -->
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="globalSearchInput" placeholder="Search any song or singer (e.g. Atif, BTS, Arijit, Diljit)..." autocomplete="off">
+            <div class="search-spinner" id="searchSpinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <button class="clear-search-btn" id="clearSearchBtn" aria-label="Clear search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
 
-<input
-type="range"
-id="progress"
-value="0"
-min="0"
-max="100">
+        <div class="top-right-group">
+          <button class="creator-chip-btn" id="creatorHeaderBtn" title="About Developer Zunair">
+            <span class="chip-dot"></span>
+            <span class="chip-text">Created by <strong>Zunair</strong></span>
+            <i class="fa-solid fa-shield-halved" style="color: #1ed760; margin-left: 6px;"></i>
+          </button>
+        </div>
+      </header>
 
-<div class="time">
+      <!-- FILTER CHIPS (All, Singers, Bollywood, Punjabi, BTS, Pop) -->
+      <section class="filter-chips-bar" id="filterChipsBar">
+        <button class="filter-pill active" data-filter="all">All</button>
+        <button class="filter-pill" data-filter="artists">Singers & Artists</button>
+        <button class="filter-pill" data-filter="bts">BTS & K-Pop ⭐</button>
+        <button class="filter-pill" data-filter="atif">Atif Aslam</button>
+        <button class="filter-pill" data-filter="arijit">Arijit Singh</button>
+        <button class="filter-pill" data-filter="diljit">Diljit Dosanjh</button>
+        <button class="filter-pill" data-filter="apdhillon">AP Dhillon</button>
+        <button class="filter-pill" data-filter="bollywood">Bollywood & Hindi</button>
+        <button class="filter-pill" data-filter="international">International Pop</button>
+        <button class="filter-pill" data-filter="local">Local Tracks</button>
+      </section>
 
-<span id="current">00:00</span>
+      <!-- DYNAMIC VIEWS CONTAINER -->
+      <div class="content-scroll-area" id="contentScrollArea">
+        
+        <!-- 1. HOME VIEW (Default) -->
+        <section class="view-section active" id="viewHome">
+          
+          <!-- Hero Banner -->
+          <div class="hero-banner">
+            <div class="hero-content">
+              <h1 class="hero-title">Welcome to Zumut Music</h1>
+              <p class="hero-subtitle">Curated songs, top singers, and non-stop music crafted by <strong>Zunair</strong>.</p>
+              <div class="hero-actions">
+                <button class="btn-primary" id="heroPlayAllBtn">
+                  <i class="fa-solid fa-play"></i> Play All Trending
+                </button>
+                <button class="btn-secondary" id="heroExploreSingersBtn">
+                  <i class="fa-solid fa-microphone"></i> Explore Singers
+                </button>
+              </div>
+            </div>
+            <div class="hero-logo-showcase">
+              <img src="zumut-logo.png" alt="Zumut Badge" class="hero-logo-img">
+            </div>
+          </div>
 
-<span id="duration">00:00</span>
+          <!-- Top Artists / Singers Section ("Her singer k alag") -->
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Top Singers & Artists</h2>
+                <p class="section-subtitle">Select any singer to play their exclusive tracks</p>
+              </div>
+              <button class="view-all-link" id="viewAllSingersBtn">Show All</button>
+            </div>
+            <div class="artists-grid" id="featuredArtistsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
 
-</div>
+          <!-- Quick Picks / Continue Listening -->
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Trending Now on Zumut</h2>
+                <p class="section-subtitle">Most played tracks this week</p>
+              </div>
+            </div>
+            <div class="songs-grid" id="trendingSongsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
 
-<div class="buttons">
+          <!-- Bollywood & Hindi Classics -->
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Bollywood & Desi Vibe</h2>
+                <p class="section-subtitle">Heart-touching melodies & upbeat tracks</p>
+              </div>
+            </div>
+            <div class="songs-grid" id="desiSongsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
 
-<button id="back">
+          <!-- Global & Pop Top 50 -->
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Global Chartbusters</h2>
+                <p class="section-subtitle">The biggest international hits right now</p>
+              </div>
+            </div>
+            <div class="songs-grid" id="globalSongsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
 
-<i class="fa-solid fa-backward"></i>
+        </section>
 
-</button>
+        <!-- 2. SINGER / ARTIST DETAIL VIEW -->
+        <section class="view-section" id="viewArtistDetail">
+          <div class="artist-hero-header" id="artistHeroHeader">
+            <div class="artist-hero-backdrop" id="artistBackdrop"></div>
+            <div class="artist-hero-content">
+              <div class="artist-badge"><i class="fa-solid fa-circle-check"></i> Verified Artist</div>
+              <h1 class="artist-hero-name" id="artistHeroName">Artist Name</h1>
+              <p class="artist-hero-stats" id="artistHeroStats">2,850,000 monthly listeners • Dedicated Zumut Collection</p>
+              <div class="artist-hero-actions">
+                <button class="btn-primary" id="artistPlayAllBtn">
+                  <i class="fa-solid fa-play"></i> Play Songs
+                </button>
+                <button class="btn-secondary" id="backToHomeFromArtist">
+                  <i class="fa-solid fa-arrow-left"></i> All Singers
+                </button>
+              </div>
+            </div>
+          </div>
 
-<button id="play">
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">All Songs by <span id="artistSectionName">Artist</span></h2>
+                <p class="section-subtitle" id="artistSongsCountSubtitle">Official discography & hits</p>
+              </div>
+            </div>
+            <div id="artistLoadingSpinner" style="display:none; text-align:center; padding: 40px 20px;">
+              <i class="fa-solid fa-circle-notch fa-spin" style="font-size:32px; color:var(--zumut-green); margin-bottom:12px;"></i>
+              <p style="color:var(--text-sub); font-size:14px;">Fetching complete songs collection for this singer...</p>
+            </div>
+            <div class="songs-table-wrapper" id="artistSongsTableWrap">
+              <table class="songs-table" id="artistSongsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 45px;">#</th>
+                    <th>Title & Singer</th>
+                    <th>Album / Category</th>
+                    <th style="width: 80px; text-align: center;"><i class="fa-regular fa-heart"></i></th>
+                    <th style="width: 80px; text-align: right;"><i class="fa-regular fa-clock"></i></th>
+                  </tr>
+                </thead>
+                <tbody id="artistSongsTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
-<i class="fa-solid fa-play"></i>
+        <!-- 3. ALL SINGERS VIEW -->
+        <section class="view-section" id="viewAllSingers">
+          <div class="section-container">
+            <div class="section-header">
+              <div>
+                <h1 class="section-title">Singers & Artists Directory</h1>
+                <p class="section-subtitle">Click on any artist to explore their discography</p>
+              </div>
+            </div>
+            <div class="artists-grid-large" id="allSingersGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
 
-</button>
+        <!-- 4. LIKED SONGS VIEW -->
+        <section class="view-section" id="viewLikedSongs">
+          <div class="liked-hero-header">
+            <div class="liked-big-icon">
+              <i class="fa-solid fa-heart"></i>
+            </div>
+            <div class="liked-hero-text">
+              <span class="category-label">PLAYLIST</span>
+              <h1 class="liked-hero-title">Liked Songs</h1>
+              <p class="liked-hero-meta">
+                <span class="user-name">Zunair</span> • <span id="likedViewCount">0 songs</span>
+              </p>
+            </div>
+          </div>
 
-<button id="next">
+          <div class="section-container">
+            <div class="liked-actions-bar">
+              <button class="btn-primary" id="playAllLikedBtn">
+                <i class="fa-solid fa-play"></i> Play Liked Songs
+              </button>
+            </div>
+            
+            <div class="songs-table-wrapper">
+              <table class="songs-table" id="likedSongsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 45px;">#</th>
+                    <th>Title & Singer</th>
+                    <th>Category</th>
+                    <th style="width: 80px; text-align: center;"><i class="fa-regular fa-heart"></i></th>
+                    <th style="width: 80px; text-align: right;"><i class="fa-regular fa-clock"></i></th>
+                  </tr>
+                </thead>
+                <tbody id="likedSongsTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+              <div class="empty-state" id="likedEmptyState" style="display: none;">
+                <i class="fa-regular fa-heart empty-icon"></i>
+                <h3>No liked songs yet</h3>
+                <p>Songs you like by tapping the heart icon will appear here.</p>
+                <button class="btn-secondary" id="findSongsBtn">Explore Music</button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-<i class="fa-solid fa-forward"></i>
+        <!-- 5. SEARCH RESULTS VIEW -->
+        <section class="view-section" id="viewSearchResults">
+          <div class="section-container">
+            <div class="section-header">
+              <h1 class="section-title">Search Results for "<span id="searchQueryEcho"></span>"</h1>
+            </div>
 
-</button>
+            <!-- Top Result Card + Matched Songs -->
+            <div class="search-split-container">
+              <div class="search-top-result-col" id="searchTopResultCol">
+                <h3 class="subsection-title">Top Result</h3>
+                <div class="top-result-card" id="searchTopResultCard">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+              <div class="search-songs-col">
+                <h3 class="subsection-title">Songs</h3>
+                <div class="songs-table-wrapper">
+                  <table class="songs-table">
+                    <tbody id="searchSongsTableBody">
+                      <!-- Rendered via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
 
-</div>
+            <div class="section-container" style="margin-top: 30px;">
+              <h3 class="subsection-title">Matching Artists</h3>
+              <div class="artists-grid" id="searchArtistsGrid">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
 
-<div class="volume">
+            <div class="empty-state" id="searchEmptyState" style="display: none;">
+              <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+              <h3>No results found</h3>
+              <p>Try searching for a different song name, singer (e.g., Atif, Arijit, Diljit), or genre.</p>
+            </div>
+          </div>
+        </section>
 
-<i class="fa-solid fa-volume-high"></i>
+        <!-- App Footer with Creator Attribution -->
+        <footer class="app-footer">
+          <div class="footer-content">
+            <div class="footer-brand">
+              <img src="zumut-logo.png" alt="Zumut Logo" class="footer-logo">
+              <div>
+                <h3>Zumut</h3>
+                <p>Music For Your Mood</p>
+              </div>
+            </div>
+            <div class="footer-creator-credit">
+              <p>Designed, Engineered & Built with passion by <strong>Zunair</strong></p>
+              <div class="footer-tags">
+                <span class="tag">Spotify Architecture</span>
+                <span class="tag">Smart Singer Filters</span>
+                <span class="tag">Instant Search</span>
+                <span class="tag">Equalizer Waveform</span>
+              </div>
+            </div>
+          </div>
+        </footer>
 
-<input
-type="range"
-id="volume"
-min="0"
-max="1"
-step="0.1"
-value="1">
+      </div>
+    </main>
 
-</div>
+    <!-- RIGHT/POPUP QUEUE DRAWER (Collapsible) -->
+    <aside class="queue-drawer" id="queueDrawer">
+      <div class="queue-header">
+        <h3>Current Play Queue</h3>
+        <button class="queue-close-btn" id="closeQueueBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="queue-current-wrap">
+        <div class="queue-label">Now Playing</div>
+        <div class="queue-current-card" id="queueCurrentCard">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+      <div class="queue-upcoming-wrap">
+        <div class="queue-label">Next In Queue</div>
+        <ul class="queue-list" id="queueList">
+          <!-- Injected via JS -->
+        </ul>
+      </div>
+    </aside>
 
-<div class="playlist">
+  </div>
 
-<h3>Playlist</h3>
+  <!-- PERSISTENT BOTTOM AUDIO PLAYER BAR -->
+  <footer class="player-bar" id="playerBar">
+    
+    <!-- Left: Track Info & Like Toggle -->
+    <div class="player-left">
+      <div class="track-thumb-container">
+        <img src="zumut-logo.png" alt="Track Cover" class="track-thumb" id="playerTrackThumb">
+        <div class="thumb-glow" id="playerThumbGlow"></div>
+      </div>
+      <div class="track-details">
+        <div class="track-title" id="playerTrackTitle">Kontraa Nasha</div>
+        <div class="track-artist" id="playerTrackArtist">Bollywood Pop</div>
+      </div>
+      <button class="like-btn" id="playerLikeBtn" aria-label="Like song" title="Save to Liked Songs">
+        <i class="fa-regular fa-heart"></i>
+      </button>
+    </div>
 
-<ul id="playlist">
+    <!-- Center: Player Controls & Timeline Slider -->
+    <div class="player-center">
+      <div class="player-controls">
+        <button class="control-btn" id="shuffleBtn" title="Shuffle (S)">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+        <button class="control-btn" id="prevBtn" title="Previous Song (Left Arrow)">
+          <i class="fa-solid fa-backward-step"></i>
+        </button>
+        <button class="control-btn play-btn" id="mainPlayBtn" title="Play / Pause (Spacebar)">
+          <i class="fa-solid fa-play"></i>
+        </button>
+        <button class="control-btn" id="nextBtn" title="Next Song (Right Arrow)">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+        <button class="control-btn" id="repeatBtn" title="Repeat (R)">
+          <i class="fa-solid fa-repeat"></i>
+        </button>
+      </div>
 
-<li>Alex Morgan</li>
+      <div class="player-timeline">
+        <span class="time-label" id="currentTimeLabel">0:00</span>
+        <div class="seek-slider-container">
+          <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.5" aria-label="Audio progress seek bar">
+          <div class="seek-progress-fill" id="seekProgressFill"></div>
+        </div>
+        <span class="time-label" id="durationLabel">0:00</span>
+      </div>
+    </div>
 
-<li>Kontraa Nasha</li>
+    <!-- Right: Visualizer, Queue Toggle, Volume Slider -->
+    <div class="player-right">
+      
+      <!-- Live Equalizer Animation -->
+      <div class="equalizer-bars-mini" id="audioEqualizerBars" title="Sound Equalizer">
+        <span class="bar bar-1"></span>
+        <span class="bar bar-2"></span>
+        <span class="bar bar-3"></span>
+        <span class="bar bar-4"></span>
+        <span class="bar bar-5"></span>
+      </div>
 
-<li>HitsLab Hindi Song</li>
+      <button class="player-icon-btn" id="openFullSongBtn" title="Play Full Song on YouTube" style="color: #ff0000;">
+        <i class="fa-brands fa-youtube"></i>
+      </button>
 
-<li>Apalon Beats</li>
+      <button class="player-icon-btn" id="toggleQueueBtn" title="Queue">
+        <i class="fa-solid fa-list-ul"></i>
+      </button>
 
-</ul>
+      <div class="volume-container">
+        <button class="volume-mute-btn" id="volumeMuteBtn" title="Mute / Unmute (M)">
+          <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
+        </button>
+        <div class="volume-slider-wrapper">
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8" aria-label="Volume slider">
+          <div class="volume-progress-fill" id="volumeProgressFill"></div>
+        </div>
+      </div>
+    </div>
+  </footer>
 
-</div>
+  <!-- DEDICATED GLOBAL AUDIO ELEMENT -->
+  <audio id="globalAudio" preload="auto"></audio>
 
-</div>
+  <!-- CREATOR MODAL (ABOUT ZUNAIR & ZUMUT) -->
+  <div class="modal-overlay" id="creatorModalOverlay">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="closeCreatorModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-header">
+        <div class="modal-logo-wrap">
+          <img src="zumut-logo.png" alt="Zumut Logo" class="modal-logo">
+        </div>
+        <h2>Zumut Music</h2>
+        <span class="modal-tagline">"Music For Your Mood"</span>
+      </div>
+      <div class="modal-body">
+        <div class="developer-profile-card">
+          <div class="dev-avatar">Z</div>
+          <div class="dev-meta">
+            <h3>Created by Zunair</h3>
+            <span class="verified-tag"><i class="fa-solid fa-certificate"></i> Official Creator & Developer</span>
+            <p>Crafted with modern responsive web technologies, customized Spotify design system, audio engine, and dynamic singer discographies.</p>
+          </div>
+        </div>
 
-</div>
+        <div class="app-specs-grid">
+          <div class="spec-card">
+            <i class="fa-solid fa-music"></i>
+            <h4>Songs Library</h4>
+            <p>Curated Bollywood, Punjabi, & International hits</p>
+          </div>
+          <div class="spec-card">
+            <i class="fa-solid fa-filter"></i>
+            <h4>Singer Filters</h4>
+            <p>Separate catalogs for every artist</p>
+          </div>
+          <div class="spec-card">
+            <i class="fa-solid fa-bolt"></i>
+            <h4>Instant Search</h4>
+            <p>Real-time fuzzy query filtering</p>
+          </div>
+          <div class="spec-card">
+            <i class="fa-solid fa-heart"></i>
+            <h4>Liked Favorites</h4>
+            <p>Saved in localStorage across sessions</p>
+          </div>
+        </div>
 
-<script src="script.js"></script>
+        <div class="keyboard-shortcuts-hint">
+          <h4>Keyboard Shortcuts</h4>
+          <div class="shortcut-tags">
+            <span><kbd>Space</kbd> Play / Pause</span>
+            <span><kbd>→</kbd> Seek +5s</span>
+            <span><kbd>←</kbd> Seek -5s</span>
+            <span><kbd>↑</kbd> Vol Up</span>
+            <span><kbd>↓</kbd> Vol Down</span>
+            <span><kbd>M</kbd> Mute</span>
+            <span><kbd>L</kbd> Like Track</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="modalDismissBtn">Enjoy Listening</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-notification" id="toastNotification">
+    <i class="fa-solid fa-circle-check toast-icon" id="toastIcon"></i>
+    <span class="toast-message" id="toastMessage">Added to Liked Songs</span>
+  </div>
+
+  <!-- MAIN SCRIPT -->
+  <script src="script.js"></script>
 </body>
-
 </html>

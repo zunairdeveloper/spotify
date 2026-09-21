@@ -1,5 +1,5 @@
 /* =========================================================
-   ZUMUT - MUSIC FOR YOUR MOOD
+   ZUMIX - MUSIC WITHOUT LIMITS
    Created & Designed by Zunair
    Spotify Dark Aesthetic & Glassmorphism Design System
    ========================================================= */
@@ -15,7 +15,8 @@
   --zumut-green: #1ed760;
   --zumut-green-glow: #00ff87;
   --zumut-accent: #10b981;
-  --zumut-gradient: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+  --zumut-gradient: linear-gradient(135deg, #00d2ff 0%, #9b51e0 50%, #e040fb 100%);
+  --zumix-gradient: linear-gradient(135deg, #00d2ff 0%, #9b51e0 50%, #e040fb 100%);
   --spotify-green-gradient: linear-gradient(135deg, #1ed760 0%, #1db954 100%);
   --liked-gradient: linear-gradient(135deg, #450af5 0%, #c4efd9 100%);
   
